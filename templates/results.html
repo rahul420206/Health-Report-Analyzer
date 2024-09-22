@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Test Results</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .recommendations, .articles {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-center">Blood Test Results</h1>
+
+    <div class="recommendations">
+        <h3>Recommendations</h3>
+        <div>{{ recommendations|safe }}</div>
+    </div>
+
+    <div class="articles">
+        <h3>Related Health Articles</h3>
+        <div>{{ health_articles|safe }}</div>
+    </div>
+
+    <h3>Send Report and Articles via Email</h3>
+    <form action="/email_report" method="POST">
+        <label for="email">Enter your email to receive the health report and articles:</label>
+        <input type="email" id="email" name="email" class="form-control" required aria-label="Email">
+        <button type="submit" class="btn btn-primary mt-3">Send Email</button>
+    </form>
+    
+    
+    <div class="text-center mt-4">
+        <a href="/" class="btn btn-primary">Upload Another PDF</a>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

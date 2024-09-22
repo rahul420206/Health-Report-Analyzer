@@ -1,0 +1,13 @@
+Flask
+Flask-Mail
+asyncio
+smtplib
+email-validator
+pdfplumber
+pytesseract
+pdf2image
+cohere
+flask
+crewai
+flask_session
+requests

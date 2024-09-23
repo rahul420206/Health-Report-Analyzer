@@ -22,4 +22,5 @@ To run this application, you need:
    ```bash
    git clone <repository-url>
    cd <repository-folder>
+   run app.py
    ```

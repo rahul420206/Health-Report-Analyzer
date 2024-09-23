@@ -11,6 +11,16 @@ from flask import request, render_template
 from flask import session
 from flask import Flask
 
+import cohere
+
+co = cohere.Client("evLatt2FuOBOJti8orWXbEoATx0NDUTGAkLcXRJO")
+
+import os
+
+print("COHERE_API_KEY:", os.getenv("COHERE_API_KEY"))
+
+
+
 os.environ["COHERE_API_KEY"] = "evLatt2FuOBOJti8orWXbEoATx0NDUTGAkLcXRJO"  
 co = cohere.Client(os.environ["COHERE_API_KEY"])
 
@@ -21,6 +31,7 @@ researcher = Agent(
     goal='Analyze blood test data and generate recommendations.',
     backstory='You are a health analysis assistant.',
     verbose=True,
+    chat_model=cohere,
     allow_delegation=False
 )
 
@@ -29,6 +40,7 @@ article_retriever = Agent(
     goal='Retrieve health-related articles based on the analysis of the user’s blood report.',
     backstory='You are responsible for finding relevant health articles based on medical information.',
     verbose=True,
+    chat_model=cohere,
     allow_delegation=True 
 )
 
@@ -37,24 +49,28 @@ web_search_agent = Agent(
     goal='Automate health-related searches based on the user’s health report and provide useful articles.',
     backstory='You specialize in retrieving relevant articles from the web.',
     verbose=True,
+    chat_model=cohere,
     allow_delegation=False
 )
 
 task1 = Task(
     description='Analyze blood test data extracted from the PDF.',
     agent=researcher,
+    chat_model=cohere,
     expected_output='Health recommendations based on the analysis.'
 )
 
 task2 = Task(
     description='Retrieve articles relevant to the user’s health profile based on blood test results.',
     agent=article_retriever,
+    chat_model=cohere,
     expected_output='A list of health-related articles based on the report analysis.'
 )
 
 task3 = Task(
     description='Perform web search to retrieve health-related articles.',
     agent=web_search_agent,
+    chat_model=cohere,
     expected_output='Links to relevant health articles.'
 )
 
@@ -63,7 +79,7 @@ def send_email(recipient_email, report_analysis, articles):
         smtp_server = 'smtp.gmail.com'
         smtp_port = 587
         sender_email = '9201156@student.nitandhra.ac.in'
-        sender_password = 'rahulmatta2001'  
+        sender_password = 'xffd kfub dsix aawt'  
 
         msg = MIMEMultipart('alternative')
         msg['From'] = sender_email
@@ -129,43 +145,56 @@ async def retrieve_health_articles(report_details):
     )
     
     result = await generate_response(prompt)
-
+    
     articles = result.split('\n')
+    unique_articles = set()  # To avoid duplicates
     formatted_articles = ''
     
     for article in articles:
         if "Title:" in article and "URL:" in article:
             title = article.split('Title: ')[1].split(', URL:')[0].strip()
             url = article.split('URL: ')[1].strip()
-            formatted_articles += f'<li><a href="{url}" target="_blank">{title}</a></li>'
+            if (title, url) not in unique_articles:  # Check for duplicates
+                unique_articles.add((title, url))
+                formatted_articles += f'<li><a href="{url}" target="_blank">{title}</a></li>'
     
-    return f'<ul>{formatted_articles}</ul>'
+    return f'<ul>{formatted_articles}</ul>' if formatted_articles else 'No articles were retrieved.'
 
 @app.route('/email_report', methods=['POST'])
 def email_report():
+    # Retrieve the email from the form
     email = request.form.get('email')
 
-    articles = asyncio.run(retrieve_health_articles("Your blood test report details here"))  # Provide actual details if needed
+    # Retrieve extracted text from session, or provide default text if not found
+    extracted_text = session.get('extracted_text', "Your blood test report details here")
 
+    if not extracted_text:
+        return "No extracted text found. Please upload the report again.", 400
+
+    # Analyze blood test results and retrieve related health articles
+    recommendations = asyncio.run(analyze_blood_test(extracted_text))
+    articles = asyncio.run(retrieve_health_articles(extracted_text))
+
+    # Check if articles were retrieved
     if not articles:
-        return "No articles were retrieved. Please try again.", 400
+        articles = "No articles were retrieved."
 
+    # Prepare the email body with both recommendations and articles
     email_body = f"""
     <html>
     <head></head>
     <body>
-        <h2>Related Health Articles:</h2>
-        <ul>
-          {articles}
-        </ul>
+        <p> Hi!, These are the articles related to your report. Thank you!
+        <br>
+        <p>Note: The recommendations and articles provided are for informational purposes only. Please consult a healthcare professional for detailed medical advice.</p>
     </body>
     </html>
     """
 
-    send_email(email, email_body, articles)  
+    # Send the email with recommendations and articles
+    send_email(email, email_body, articles)
 
     return "Email sent successfully!"
-
 
 @app.route("/", methods=["GET"])
 def home():
@@ -205,37 +234,6 @@ def results():
 
 from flask import session, request
 from flask_session import Session  
-
-def email_report():
-  email = request.form.get('email')
-  extracted_text = session.get('extracted_text') 
-
-  if not extracted_text:
-    return "No extracted text found. Please upload the report again.", 400
-
-  recommendations = asyncio.run(analyze_blood_test(extracted_text))
-  articles = asyncio.run(retrieve_health_articles(extracted_text))
-
-  if not articles:
-    return "No articles were retrieved. Please try again.", 400
-
-  email_body = f"""
-  <html>
-  <head></head>
-  <body>
-    <h2>Blood Test Analysis Results:</h2>
-    <p>{recommendations}</p>
-    <h2>Related Health Articles:</h2>
-    <ul>
-      {articles}
-    </ul>
-  </body>
-  </html>
-  """
-
-  send_email(email, email_body, articles) 
-
-  return "Email sent successfully!"
 
 if __name__ == "__main__":
     os.makedirs('uploads', exist_ok=True)  
